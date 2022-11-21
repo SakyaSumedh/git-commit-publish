@@ -1,0 +1,25 @@
+#!/bin/bash
+
+LOG_DIRECTORY="$HOME/work_log"
+FILENAME="$LOG_DIRECTORY/$(date +%F).log"
+if [ ! -f "$FILENAME" ]; then
+  echo "$FILENAME does not exist"
+  exit;
+fi
+
+STANDUP=("What I did today ($(date +%F)):")
+LNO=1
+while IFS= read -r line; do
+  STANDUP+="\n$LNO. $line"
+  ((LNO++))
+done <<< $(cat $FILENAME )
+
+printf -v COMMENT '%s' "${STANDUP[@]}"
+
+curl -i -X POST \
+  "https://api.clickup.com/api/v2/view/$CLICKUP_VIEW_ID/comment" \
+  -H "Authorization: $CLICKUP_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d "{
+    \"comment_text\": \"${COMMENT%,}\"
+  }"

@@ -1,0 +1,104 @@
+#!/bin/bash
+
+BRANCH_NAME=`git symbolic-ref --short HEAD`
+TAG_OPTIONS=("Fix" "Update" "New" "Breaking" "Docs" "Build" "Upgrade" "Chore")
+COMMIT_TAG=""
+MESSAGE=""
+DESCRIPTION=""
+
+Help () 
+{
+  echo "Format your commit message as below:"
+  echo "    branch_name [commit_tag]: commit message"
+  echo
+  echo "Syntax: scriptTemplate [-d|h|m|t]"
+  echo "OPTIONS:"
+  echo "h       Print this help"
+  echo "t       Commit Tags "
+  echo "            Commit Tags Options:"
+  echo "                Fix           for a bug fix. "
+  echo "                Update        either for a backwards-compatible enhancement or for a rule change that adds reported problems. "
+  echo "                New           implemented a new feature."
+  echo "                Breaking      for a backwards-incompatible enhancement or feature."
+  echo "                Docs          changes to documentation only."
+  echo "                Build         changes to build process only."
+  echo "                Upgrade       for a dependency upgrade."
+  echo "                Chore         for refactoring, adding tests, etc. (anything that isn't user-facing)."
+  echo "m       Commit Message"
+  echo "d       Description for commit message [optional]"
+  echo
+  echo "Command:"
+  echo "      commit -t \"Docs\" -m \"Add README file\""
+  echo "      commit -t \"Docs\" -m \"Add README file\" -d \"Add Project Setup Guideline for local environment\""
+  echo
+  echo "Commit Message Output:"
+  echo "      main [Docs]: Add README file"
+  echo
+  echo
+}
+
+if [[ $1 = "-h" || $1 = "--help" ]]; then
+  Help
+  exit;
+fi
+
+# Get Options
+while getopts ":t:m:d:" option; do
+  case $option in 
+    t)
+      COMMIT_TAG=$OPTARG
+      ;;
+    m)
+      MESSAGE=$OPTARG
+      ;;
+    d)
+      DESCRIPTION=$OPTARG
+      ;;
+    \?)
+      echo "ERROR: Unknown option -$OPTARG" 1>&2
+      exit
+      ;;
+  esac
+done
+
+if ((OPTIND == 1))
+then
+  echo "ERROR: No options specified"
+  exit;
+fi
+
+shift $((OPTIND -1))
+
+if [[ -z "${COMMIT_TAG}" ]]
+  then
+    echo "ERROR: Please add commit tag."
+    echo "Options: Fix | Update | New | Breaking | Docs | Build | Upgrade | Chore"
+    exit;
+  else
+    if [[ ! "${TAG_OPTIONS[*]}" =~ "${COMMIT_TAG}" ]]; then
+      echo "ERROR: Invalid commit tag."
+      echo "Options: Fix | Update | New | Breaking | Docs | Build | Upgrade | Chore"
+      exit;
+    fi
+fi
+
+if [[ -z "${MESSAGE}" ]]; then
+  echo "ERROR: Please add commit message"
+  exit;
+fi
+
+COMMIT_MESSAGE="$BRANCH_NAME [$COMMIT_TAG]: $MESSAGE"
+git commit -m "$COMMIT_MESSAGE" -m "$DESCRIPTION"
+
+if [ $? -ne 0 ]; then
+  exit;
+fi
+
+LOG_DIRECTORY="$HOME/work_log"
+if [ ! -d $LOG_DIRECTORY ];
+then
+  mkdir $LOG_DIRECTORY
+fi
+
+FILENAME="$(date +%F).log"
+echo $COMMIT_MESSAGE >> "$LOG_DIRECTORY/$FILENAME"
